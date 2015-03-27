@@ -989,8 +989,7 @@ void PgModelerCLI::handleMimeDatabase(bool uninstall)
 
  #ifdef Q_OS_LINUX
   attribs_map attribs;
-  QString startup_script="start-pgmodeler.sh",
-       str_aux,
+  QString str_aux,
 
        //Configures the path to the application logo
        exec_icon=QDir(GlobalAttributes::CONFIGURATIONS_DIR +
@@ -1031,9 +1030,12 @@ void PgModelerCLI::handleMimeDatabase(bool uninstall)
   }
   else if(!uninstall)
   {
-    attribs[ParsersAttributes::ROOT_DIR]=GlobalAttributes::PGMODELER_BIN_PATH;
-    attribs[ParsersAttributes::APPLICATION]=QFileInfo(QString("%1/%2").arg(GlobalAttributes::PGMODELER_BIN_PATH).arg(startup_script)).exists() ?
-                                              startup_script : GlobalAttributes::PGMODELER_APP_NAME;
+    QString startup_script=QString("%1/start-pgmodeler.sh")
+                           .arg(QFileInfo(GlobalAttributes::PGMODELER_APP_PATH).absolutePath());
+
+    attribs[ParsersAttributes::WORKING_DIR]=QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    attribs[ParsersAttributes::APPLICATION]=(QFileInfo(startup_script).exists() ?
+                                             startup_script : GlobalAttributes::PGMODELER_APP_PATH);
     attribs[ParsersAttributes::ICON]=exec_icon;
   }
 
@@ -1121,10 +1123,11 @@ void PgModelerCLI::handleMimeDatabase(bool uninstall)
     //Update the mime database
     if(!silent_mode)
       PgModelerCLI::out << trUtf8("Running update-mime-database command...") << endl;
+
     QProcess::execute(QString("update-mime-database"), QStringList { mime_db_dir });
 
     if(!silent_mode)
-      PgModelerCLI::out << trUtf8("Mime database sucessfully updated.") << endl;
+      PgModelerCLI::out << trUtf8("Mime database sucessfully updated.") << endl << endl;
   }
   catch(Exception &e)
   {

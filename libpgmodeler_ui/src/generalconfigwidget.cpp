@@ -451,8 +451,8 @@ void GeneralConfigWidget::updateFileAssociation(void)
 	if(msg_box.result()==QDialog::Accepted)
 	{
 		//file_associated=true;
-		attribs[ParsersAttributes::ROOT_DIR]=QApplication::applicationDirPath();
-		attribs[ParsersAttributes::ICON]=exec_icon;
+    //attribs[ParsersAttributes::ROOT_DIR]=QApplication::applicationDirPath();
+    //attribs[ParsersAttributes::ICON]=exec_icon;
 
 		try
 		{

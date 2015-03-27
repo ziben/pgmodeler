@@ -89,27 +89,23 @@ namespace GlobalAttributes {
 
 
 	/*! \brief Variables used to reference the pgModeler directories.
-	 By default, it searches the directories conf/, schemas/, lang/, plugins/, tmp/ and samples/ on
-	 the working dir. But these values ​​can be overwritten using the
-	 environment variables:
 
-		 PGMODELER_SCHEMAS_DIR
-		 PGMODELER_CONF_DIR
-		 PGMODELER_LANG_DIR
-		 PGMODELER_PLUGINS_DIR
-		 PGMODELER_TMP_DIR
-     PGMODELER_SAMPLES_DIR
+     PGMODELER_SCHEMAS_DIR   --> "schema" folder  (SQL/XML generation schema files)
+     PGMODELER_CONF_DIR      --> "conf" folder    (user's own settings for pgModeler)
+     PGMODELER_TMPL_CONF_DIR --> "conf" folder    (used as template settings and copied to user's settings)
+     PGMODELER_LANG_DIR      --> "lang" folder    (ui translations)
+     PGMODELER_PLUGINS_DIR   --> "plugins" folder (where plugins are installed)
+     PGMODELER_TMP_DIR       --> "tmp" folder     (where temporary work are saved)
+     PGMODELER_SAMPLES_DIR   --> "samples" folder (contains sample dbm files)
 
-   Additional var are used to specify where to find crash handler and command line interface
-   application.
+   Additional var are used to specify where to find crash handler, command line interface
+   and main applications.
 
-     PGMODELER_CHANDLER_PATH
-     PGMODELER_CLI_PATH */
+     PGMODELER_CHANDLER_PATH --> Full path to pgmodeler-ch executable
+     PGMODELER_CLI_PATH      --> Full path to pgmodeler-cli executable
+     PGMDOELER_APP_PATH      --> Full path to pgmodeler executable */
 
 	static const QString
-  //! brief Stores the path where the main application executable is located
-  PGMODELER_BIN_PATH=QString(BINDIR),
-
 	/*! \brief According to the libxml documentation , the paths used by the parser are
 		 in URI format (eg file://a/b/c) then, in Windows, the paths are shaped
 		 C:\a\b\c, this caused the error in the parser that could not find
@@ -121,6 +117,7 @@ namespace GlobalAttributes {
   PLUGINS_DIR=getenv("PGMODELER_PLUGINS_DIR") ? QString(getenv("PGMODELER_PLUGINS_DIR")).replace('\\','/') : QString(PLUGINSDIR),
   TEMPORARY_DIR=getenv("PGMODELER_TMP_DIR") ? QString(getenv("PGMODELER_TMP_DIR")).replace('\\','/') : QString(TEMPDIR),
   SAMPLES_DIR=getenv("PGMODELER_SAMPLES_DIR") ? QString(getenv("PGMODELER_SAMPLES_DIR")).replace('\\','/') : QString(SAMPLESDIR),
+  TMPL_CONFIGURATIONS_DIR=getenv("PGMODELER_TMPL_CONF_DIR") ? QString(getenv("PGMODELER_TMPL_CONF_DIR")).replace('\\','/') : QString(CONFDIR),
 
   #if defined(Q_OS_MAC)
     CONFIGURATIONS_DIR=getenv("PGMODELER_CONF_DIR") ?
@@ -145,25 +142,34 @@ namespace GlobalAttributes {
   #if defined(Q_OS_UNIX)
     #if defined(Q_OS_MAC)
       //For MacOSX the crash handler path is fixed (inside bundle)
-      CRASH_HANDLER_PATH=MACOS_STARTUP_SCRIPT + QString(" pgmodeler-ch"),
+      PGMODELER_CHANDLER_PATH=MACOS_STARTUP_SCRIPT + QString(" pgmodeler-ch"),
       PGMODELER_CLI_PATH=MACOS_STARTUP_SCRIPT;// + QString(" pgmodeler-cli");
+      PGMODELER_APP_PATH=MACOS_STARTUP_SCRIPT;
     #else
-      CRASH_HANDLER_PATH=getenv("PGMODELER_CHANDLER_PATH") ?
+      PGMODELER_CHANDLER_PATH=getenv("PGMODELER_CHANDLER_PATH") ?
                          QString(getenv("PGMODELER_CHANDLER_PATH")) :
                          QString(PRIVATEBINDIR) + QString("/pgmodeler-ch"),
 
       PGMODELER_CLI_PATH=getenv("PGMODELER_CLI_PATH") ?
                            QString(getenv("PGMODELER_CLI_PATH")) :
-                           QString(BINDIR) + QString("/pgmodeler-cli");
+                           QString(BINDIR) + QString("/pgmodeler-cli"),
+
+      PGMODELER_APP_PATH=getenv("PGMODELER_APP_PATH") ?
+                         QString(getenv("PGMODELER_APP_PATH")) :
+                         QString(BINDIR) + QString("/pgmodeler");
     #endif
   #else
-    CRASH_HANDLER_PATH=getenv("PGMODELER_CHANDLER_PATH") ?
-                       QString(getenv("PGMODELER_CHANDLER_PATH")) :
-                       QString(PRIVATEBINDIR) + QString("\\pgmodeler-ch.exe"),
+    PGMODELER_CHANDLER_PATH=getenv("PGMODELER_CHANDLER_PATH") ?
+                            QString(getenv("PGMODELER_CHANDLER_PATH")) :
+                            QString(PRIVATEBINDIR) + QString("\\pgmodeler-ch.exe"),
 
     PGMODELER_CLI_PATH=getenv("PGMODELER_CLI_PATH") ?
                        QString(getenv("PGMODELER_CLI_PATH")) :
                        QString(PRIVATEBINDIR) + QString("\\pgmodeler-cli.exe");
+
+    PGMODELER_APP_PATH=getenv("PGMODELER_APP_PATH") ?
+                       QString(getenv("PGMODELER_APP_PATH")) :
+                       QString(BINDIR) + QString("\\pgmodeler.exe");
   #endif
 
 	#ifdef DEMO_VERSION
