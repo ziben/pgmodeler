@@ -60,7 +60,6 @@ class LIBPGMODELER_UI_EXPORT GeneralConfigWidget: public BaseConfigWidget, publi
 	public slots:
 		void applyConfiguration(void);
 		void restoreDefaults(void);
-		void updateFileAssociation(void);
 		void selectPaperSize(void);
 
 	private slots:
