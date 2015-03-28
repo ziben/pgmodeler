@@ -165,7 +165,7 @@ namespace GlobalAttributes {
 
     PGMODELER_CLI_PATH=getenv("PGMODELER_CLI_PATH") ?
                        QString(getenv("PGMODELER_CLI_PATH")) :
-                       QString(PRIVATEBINDIR) + QString("\\pgmodeler-cli.exe");
+                       QString(PRIVATEBINDIR) + QString("\\pgmodeler-cli.exe"),
 
     PGMODELER_APP_PATH=getenv("PGMODELER_APP_PATH") ?
                        QString(getenv("PGMODELER_APP_PATH")) :

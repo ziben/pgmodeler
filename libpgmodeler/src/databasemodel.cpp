@@ -1639,7 +1639,7 @@ void DatabaseModel::checkRelationshipRedundancy(Relationship *rel)
 void DatabaseModel::storeSpecialObjectsXML(void)
 {
 	unsigned count, i, type_id;
-	vector<BaseObject *>::iterator itr, itr_end;
+  vector<BaseObject *>::iterator itr, itr_end;
 	Sequence *sequence=nullptr;
 	Permission *permission=nullptr;
 	Table *table=nullptr;
@@ -1652,18 +1652,20 @@ void DatabaseModel::storeSpecialObjectsXML(void)
 	Reference ref;
 	ObjectType tab_obj_type[3]={ OBJ_CONSTRAINT, OBJ_TRIGGER, OBJ_INDEX };
 	bool found=false;
+  vector<BaseObject *> aux_vect;
 
 	try
 	{
-		itr=tables.begin();
-		itr_end=tables.end();
+    aux_vect=tables;
+    itr=aux_vect.begin();
+    itr_end=aux_vect.end();
 
 		/* Check on tables if there is some constraint/index/trigger that is referencing
 		 some column added by relationship */
-		while(itr!=itr_end)
+    while(itr!=itr_end)
 		{
-			table=dynamic_cast<Table *>(*itr);
-			itr++;
+      table=dynamic_cast<Table *>(*itr);
+      itr++;
 
 			for(type_id=0; type_id < 3; type_id++)
 			{
@@ -1721,13 +1723,14 @@ void DatabaseModel::storeSpecialObjectsXML(void)
 			}
 		}
 
-		itr=sequences.begin();
-		itr_end=sequences.end();
+    aux_vect=sequences;
+    itr=aux_vect.begin();
+    itr_end=aux_vect.end();
 
-		while(itr!=itr_end)
+    while(itr!=itr_end)
 		{
-			sequence=dynamic_cast<Sequence *>(*itr);
-			itr++;
+      sequence=dynamic_cast<Sequence *>(*itr);
+      itr++;
 
 			if(sequence->isReferRelationshipAddedColumn())
 			{
@@ -1737,13 +1740,14 @@ void DatabaseModel::storeSpecialObjectsXML(void)
 			}
 		}
 
-		itr=views.begin();
-		itr_end=views.end();
+    aux_vect=views;
+    itr=aux_vect.begin();
+    itr_end=aux_vect.end();
 
-		while(itr!=itr_end)
+    while(itr!=itr_end)
 		{
-			view=dynamic_cast<View *>(*itr);
-			itr++;
+      view=dynamic_cast<View *>(*itr);
+      itr++;
 
 			if(view->isReferRelationshipAddedColumn())
 			{
@@ -1778,14 +1782,15 @@ void DatabaseModel::storeSpecialObjectsXML(void)
 			}
 		}
 
-		itr=permissions.begin();
-		itr_end=permissions.end();
+    aux_vect=permissions;
+    itr=aux_vect.begin();
+    itr_end=aux_vect.end();
 
-		while(itr!=itr_end)
+    while(itr!=itr_end)
 		{
-			permission=dynamic_cast<Permission *>(*itr);
+      permission=dynamic_cast<Permission *>(*itr);
 			tab_obj=dynamic_cast<TableObject *>(permission->getObject());
-			itr++;
+      itr++;
 
 			if(tab_obj)
 			{
