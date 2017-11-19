@@ -1570,7 +1570,6 @@ void DatabaseImportHelper::createTable(attribs_map &attribs)
 		attribs_map pos_attrib={{ ParsersAttributes::X_POS, QString("0") },
 								{ ParsersAttributes::Y_POS, QString("0") }};
 
-
 		attribs[ParsersAttributes::COLUMNS]=QString();
 		attribs[ParsersAttributes::POSITION]=schparser.getCodeDefinition(ParsersAttributes::POSITION, pos_attrib, SchemaParser::XML_DEFINITION);
 
@@ -1781,11 +1780,54 @@ void DatabaseImportHelper::createTrigger(attribs_map &attribs)
 	}
 }
 
+QStringList DatabaseImportHelper::parseIndexExpressions(const QString &expr)
+{
+	int open_paren = 0, close_paren = 0, pos = 0;
+	QStringList expressions;
+	QChar chr;
+	QString word;
+	bool open_apos = false;
+
+	if(!expr.isEmpty())
+	{
+		while(pos < expr.length())
+		{
+			chr = expr[pos++];
+			word += chr;
+
+			if(chr == QChar('\''))
+				open_apos = !open_apos;
+
+			if(!open_apos && chr == QChar('('))
+				open_paren++;
+			else if(!open_apos && chr == QChar(')'))
+				close_paren++;
+
+			if(chr == QChar(',') || pos == expr.length())
+			{
+				if(open_paren == close_paren)
+				{
+					if(word.endsWith(QChar(',')))
+						word.remove(word.length() - 1, 1);
+
+					if(word.contains('(') && word.contains(')'))
+						expressions.push_back(word.trimmed());
+
+					word.clear();
+					open_paren = close_paren = 0;
+				}
+			}
+		}
+	}
+
+	return(expressions);
+}
+
 void DatabaseImportHelper::createIndex(attribs_map &attribs)
 {
 	try
 	{
-		QStringList cols, opclasses, collations;
+		QStringList cols, opclasses, collations, exprs;
 		IndexElement elem;
 		BaseTable *parent_tab=nullptr;
 		Collation *coll=nullptr;
@@ -1812,12 +1854,7 @@ void DatabaseImportHelper::createIndex(attribs_map &attribs)
 		cols=Catalog::parseArrayValues(attribs[ParsersAttributes::COLUMNS]);
 		collations=Catalog::parseArrayValues(attribs[ParsersAttributes::COLLATIONS]);
 		opclasses=Catalog::parseArrayValues(attribs[ParsersAttributes::OP_CLASSES]);
-
-		if(!attribs[ParsersAttributes::EXPRESSIONS].isEmpty())
-		{
-			elem.setExpression(attribs[ParsersAttributes::EXPRESSIONS]);
-			attribs[ParsersAttributes::ELEMENTS]+=elem.getCodeDefinition(SchemaParser::XML_DEFINITION);
-		}
+		exprs = parseIndexExpressions(attribs[ParsersAttributes::EXPRESSIONS]);
 
 		for(i=0; i < cols.size(); i++)
 		{
@@ -1830,19 +1867,26 @@ void DatabaseImportHelper::createIndex(attribs_map &attribs)
 				else
 					elem.setExpression(getColumnName(attribs[ParsersAttributes::TABLE], cols[i]));
 			}
+			else if(!exprs.isEmpty())
+			{
+				elem.setExpression(exprs.front());
+				exprs.pop_front();
+			}
 
 			if(i < collations.size() && collations[i]!=QString("0"))
 			{
 				coll_name=getDependencyObject(collations[i], OBJ_COLLATION, false, true, false);
 				coll=dynamic_cast<Collation *>(dbmodel->getObject(coll_name, OBJ_COLLATION));
 
-				if(coll)
+				//Even if the collation exists we'll ignore it when it is the "pg_catalog.default"
+				if(coll && (!coll->isSystemObject() ||
+										(coll->isSystemObject() && coll->getName() != QString("default"))))
 					elem.setCollation(coll);
 			}
 
 			if(i < opclasses.size() && opclasses[i]!=QString("0"))
 			{
-				opc_name=getDependencyObject(opclasses[i], OBJ_OPCLASS, false, true, false);
+				opc_name=getDependencyObject(opclasses[i], OBJ_OPCLASS, true, true, false);
 				opclass=dynamic_cast<OperatorClass *>(dbmodel->getObject(opc_name, OBJ_OPCLASS));
 
 				if(opclass)
@@ -1891,7 +1935,7 @@ void DatabaseImportHelper::createConstraint(attribs_map &attribs)
 
 			if(attribs[ParsersAttributes::TYPE]==ParsersAttributes::EX_CONSTR)
 			{
-				QStringList cols, opclasses, opers;
+				QStringList cols, opclasses, opers, exprs;
 				ExcludeElement elem;
 				QString opc_name, op_name;
 				OperatorClass *opclass=nullptr;
@@ -1904,22 +1948,31 @@ void DatabaseImportHelper::createConstraint(attribs_map &attribs)
 				opers=Catalog::parseArrayValues(attribs[ParsersAttributes::OPERATORS]);
 				opclasses=Catalog::parseArrayValues(attribs[ParsersAttributes::OP_CLASSES]);
 
-				if(!attribs[ParsersAttributes::EXPRESSIONS].isEmpty())
-				{
-					elem.setExpression(attribs[ParsersAttributes::EXPRESSIONS]);
-					attribs[ParsersAttributes::ELEMENTS]+=elem.getCodeDefinition(SchemaParser::XML_DEFINITION);
-				}
+				/* Due to the way exclude constraints are constructed (similar to indexes),
+				 * we get the constraint's definition in for of expressions. Internally we use pg_get_constraintdef.
+				 * This way we will get EXCLUDE USING [index type](elements). The elements in this case is a set of expression
+				 * which we work to separate column only references from complex expression. Only complex expression will be used
+				 * and assigned to their exclude constraint elements. Column references are used in exclude elements but relying in
+				 * the cols list above */
+				exprs=attribs[ParsersAttributes::EXPRESSIONS]
+							.replace(QString("EXCLUDE USING %1 (").arg(attribs[ParsersAttributes::INDEX_TYPE]), QString())
+							.split(QRegExp("(WITH )(\\+|\\-|\\*|\\/|\\<|\\>|\\=|\\~|\\!|\\@|\\#|\\%|\\^|\\&|\\||\\'|\\?)+((,)?|(\\))?)"),
+										 QString::SkipEmptyParts);
 
 				for(int i=0; i < cols.size(); i++)
 				{
 					elem=ExcludeElement();
 
-					if(cols[i]!=QString("0"))
+					if(cols[i] != QString("0"))
 						elem.setColumn(table->getColumn(getColumnName(table_oid, cols[i])));
+					else
+						elem.setExpression(exprs.front().trimmed());
+
+					exprs.pop_front();
 
 					if(i < opclasses.size() && opclasses[i]!=QString("0"))
 					{
-						opc_name=getDependencyObject(opclasses[i], OBJ_OPCLASS, false, true, false);
+						opc_name=getDependencyObject(opclasses[i], OBJ_OPCLASS, true, true, false);
 						opclass=dynamic_cast<OperatorClass *>(dbmodel->getObject(opc_name, OBJ_OPCLASS));
 
 						if(opclass)
@@ -1935,8 +1988,7 @@ void DatabaseImportHelper::createConstraint(attribs_map &attribs)
 							elem.setOperator(oper);
 					}
 
-					if(elem.getColumn())
-						attribs[ParsersAttributes::ELEMENTS]+=elem.getCodeDefinition(SchemaParser::XML_DEFINITION);
+					attribs[ParsersAttributes::ELEMENTS]+=elem.getCodeDefinition(SchemaParser::XML_DEFINITION);
 				}
 			}
 			else
@@ -2310,7 +2362,7 @@ QString DatabaseImportHelper::getObjectName(const QString &oid, bool signature_f
 				obj_name.prepend(sch_name + QString("."));
 
 			//Formatting the name in form of signature (only for functions and operators)
-			if(signature_form && (obj_type==OBJ_FUNCTION || obj_type==OBJ_OPERATOR || obj_type==OBJ_AGGREGATE || obj_type==OBJ_OPFAMILY))
+			if(signature_form && (obj_type==OBJ_FUNCTION || obj_type==OBJ_OPERATOR || obj_type==OBJ_AGGREGATE || obj_type==OBJ_OPFAMILY || obj_type==OBJ_OPCLASS))
 			{
 				QStringList params;
 
@@ -2358,7 +2410,7 @@ QString DatabaseImportHelper::getObjectName(const QString &oid, bool signature_f
 					obj_name += QString(" USING %1").arg(obj_attr[ParsersAttributes::INDEX_TYPE]);
 				}
 
-				if(obj_type != OBJ_OPFAMILY)
+				if(obj_type != OBJ_OPFAMILY && obj_type != OBJ_OPCLASS)
 					obj_name+=QString("(") + params.join(',') + QString(")");
 			}
 

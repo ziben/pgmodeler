@@ -33,11 +33,11 @@ class BezierCurveItem: public QGraphicsPathItem {
 		 * This object is used to do a better colision detection */
 		QPainterPath stroke;
 
-		/*! \brief Indicate if the curve is a simple one.
-		 * Simple curves in this case are quadratic ones where only a single
-		 * control point is used. Non-simple curves are cubic where two control points are used.
-		 * See QPainterPath::quadTo and QPainterPath::cubicTo for details. */
+		bool invert_cpoints;
+
 		bool simple_curve;
+
+		bool straight_line;
 
 	protected:
 		void setPath(const QPainterPath &path);
@@ -45,11 +45,24 @@ class BezierCurveItem: public QGraphicsPathItem {
 	public:
 		BezierCurveItem(QGraphicsItem *parent = 0);
 
-		//! \brief Configures the curve based upon a straight line.
-		void setLine(const QLineF &line, bool simple_curve, unsigned rel_type);
+		/*! \brief Configures the curve based upon a straight line.
+		 *
+		 * The simple_curve param causes the curve to be drawn using the quadratic mode and one control point.
+		 * Non-simple curves are cubic ones where two control points are used.
+		 * See QPainterPath::quadTo and QPainterPath::cubicTo for details.
+		 *
+		 * The invert_cpoints param causes the control points of the curve to be inverted
+		 * making the curve to be drawn inverted. */
+		void setLine(const QLineF &line, bool simple_curve, bool invert_cpoints);
 
-		//! \brief Returns if the curve is a simple one (quardatic - one control point) or not (cubic - two control points)
+		//! \brief Returns if the curve has the control points inverted
+		bool isControlPointsInverted(void);
+
+		//! \brief Returns if the curve is a simple one (with only one control point)
 		bool isSimpleCurve(void);
+
+		//! \brief Returns if the curve object was created from a straight line (90 or 180 degrees)
+		bool isStraightLine(void);
 
 		//! \brief Returns if the specified point is contained by the curve (specifically, by the stroke)
 		virtual bool contains(const QPointF &pnt) const;

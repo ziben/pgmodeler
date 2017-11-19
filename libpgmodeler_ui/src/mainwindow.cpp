@@ -43,6 +43,13 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags) : QMainWindow(par
 	hbox->setContentsMargins(4,4,4,4);
 	canvas_info_parent->setLayout(hbox);
 
+	QToolButton *tool_btn = qobject_cast<QToolButton *>(control_tb->widgetForAction(action_arrange_objects));
+	tool_btn->setMenu(&arrange_menu);
+	tool_btn->setPopupMode(QToolButton::InstantPopup);
+	arrange_menu.addAction(trUtf8("Grid"), this, SLOT(arrangeObjects()));
+	arrange_menu.addAction(trUtf8("Hierarchical"), this, SLOT(arrangeObjects()));
+	arrange_menu.addAction(trUtf8("Scattered"), this, SLOT(arrangeObjects()));
+
 	try
 	{
 		models_tbw->tabBar()->setVisible(false);
@@ -219,8 +226,6 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags) : QMainWindow(par
 
 	connect(model_valid_wgt, &ModelValidationWidget::s_connectionsUpdateRequest, [&](){ updateConnections(true); });
 	connect(sql_tool_wgt, &SQLToolWidget::s_connectionsUpdateRequest, [&](){ updateConnections(true); });
-
-	connect(action_arrange_objects, SIGNAL(triggered(bool)), this, SLOT(arrangeObjects()));
 
 	window_title=this->windowTitle() + QString(" ") + GlobalAttributes::PGMODELER_VERSION;
 
@@ -1080,20 +1085,34 @@ void MainWindow::setCurrentModel(void)
 
 void MainWindow::setGridOptions(void)
 {
+	GeneralConfigWidget *conf_wgt = dynamic_cast<GeneralConfigWidget *>(configuration_form->getConfigurationWidget(ConfigurationForm::GENERAL_CONF_WGT));
+	map<QString, attribs_map> attribs = conf_wgt->getConfigurationParams();
+
 	//Configures the global settings for the scene grid
 	ObjectsScene::setGridOptions(action_show_grid->isChecked(),
 								 action_alin_objs_grade->isChecked(),
 								 action_show_delimiters->isChecked());
 
+	attribs[ParsersAttributes::CONFIGURATION][ParsersAttributes::ALIGN_OBJS_TO_GRID] = (action_alin_objs_grade->isChecked() ? ParsersAttributes::_TRUE_ : ParsersAttributes::_FALSE_);
+	attribs[ParsersAttributes::CONFIGURATION][ParsersAttributes::SHOW_CANVAS_GRID] = (action_show_grid->isChecked() ? ParsersAttributes::_TRUE_ : ParsersAttributes::_FALSE_);
+	attribs[ParsersAttributes::CONFIGURATION][ParsersAttributes::SHOW_PAGE_DELIMITERS] = (action_show_delimiters->isChecked() ? ParsersAttributes::_TRUE_ : ParsersAttributes::_FALSE_);
+
 	if(current_model)
 	{
 		//Align the object to grid is the option is checked
 		if(action_alin_objs_grade->isChecked())
+		{
 			current_model->scene->alignObjectsToGrid();
+
+			//Forcing the relationship updating to fit the new position of the tables
+			current_model->getDatabaseModel()->setObjectsModified({ OBJ_RELATIONSHIP, BASE_RELATIONSHIP });
+		}
 
 		//Redraw the scene to apply the new grid options
 		current_model->scene->update();
 	}
+
+	conf_wgt->addConfigurationParam(ParsersAttributes::CONFIGURATION, attribs[ParsersAttributes::CONFIGURATION]);
 }
 
 void MainWindow::applyZoom(void)
@@ -1910,5 +1929,16 @@ void MainWindow::arrangeObjects(void)
 	msgbox.show(trUtf8("Rearrange objects over the canvas is an irreversible operation! Would like to proceed?"), Messagebox::CONFIRM_ICON, Messagebox::YES_NO_BUTTONS);
 
 	if(msgbox.result() == QDialog::Accepted)
-		current_model->rearrangeObjects();
+	{
+		QApplication::setOverrideCursor(Qt::WaitCursor);
+
+		if(sender() == arrange_menu.actions().at(0))
+			current_model->rearrangeSchemasInGrid();
+		else if(sender() == arrange_menu.actions().at(1))
+			current_model->rearrangeTablesHierarchically();
+		else
+			current_model->rearrangeTablesInSchemas();
+
+		QApplication::restoreOverrideCursor();
+	}
 }

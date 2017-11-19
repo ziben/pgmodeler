@@ -116,7 +116,9 @@ class ModelWidget: public QWidget {
 
 		select_all_menu,
 
-		jump_to_tab_menu;
+		jump_to_tab_menu,
+
+		toggle_sch_rects_menu;
 
 		//! \brief Stores the selected object on the scene
 		vector<BaseObject *> selected_objects;
@@ -182,6 +184,14 @@ class ModelWidget: public QWidget {
 		This method returns the bounding rect of the items after the rearrangement */
 		QRectF rearrangeTablesHierarchically(BaseTableView *root, vector<BaseObject *> &evaluated_tabs);
 
+		/*! \brief Arrange tables inside the provided schema randomly (scattered). An start point should
+		 * be provided. The method will avoid to put two or more tables in the same position causing
+		 * overlaping. This method causes the schema rectangle to be enabled. */
+		void rearrangeTablesInSchema(Schema *schema, QPointF start);
+
+		//! \brief Arrange all tables it their schemas randomly (scattered)
+		void rearrangeTablesInSchemas(void);
+
 		void updateMagnifierArea(void);
 
 		void showMagnifierArea(bool show);
@@ -233,7 +243,10 @@ class ModelWidget: public QWidget {
 		*action_show_ext_attribs,
 		*action_hide_ext_attribs,
 		*action_edit_creation_order,
-		*action_jump_to_table;
+		*action_jump_to_table,
+		*action_schemas_rects,
+		*action_show_schemas_rects,
+		*action_hide_schemas_rects;
 
 		//! \brief Actions used to create new objects on the model
 		map<ObjectType, QAction *> actions_new_objects;
@@ -256,18 +269,18 @@ class ModelWidget: public QWidget {
 		//! \brief Disables the model actions when some new object action is active
 		void enableModelActions(bool value);
 
-		/*! \brief Reorganizes the schemas over the scene. The parameters are: an origin point,
+		/*! \brief Reorganizes the schemas over the scene in a grid form. The parameters are: an origin point,
 		number of tables per row, schemas per row and a object spacing */
-		void rearrangeSchemas(QPointF origin, unsigned tabs_per_row, unsigned sch_per_row, double obj_spacing);
+		void rearrangeSchemasInGrid(QPointF origin = QPointF(50, 50), unsigned tabs_per_row = 5, unsigned sch_per_row = 3, double obj_spacing = 50);
 
 		/*! \brief Reorganizes the tables of a specific schema over the scene. The parameter are:
 		 the schema in which the tables will be rearranged, an origin point, number of tables per row
 		 a object spacing */
-		void rearrangeTables(Schema *schema, QPointF origin, unsigned tabs_per_row, double obj_spacing);
+		void rearrangeTablesInGrid(Schema *schema, QPointF origin, unsigned tabs_per_row, double obj_spacing);
 
 	public:
 		static constexpr double MINIMUM_ZOOM=0.050000,
-		MAXIMUM_ZOOM=4.000001,
+		MAXIMUM_ZOOM=5.000001,
 		ZOOM_INCREMENT=0.050000;
 
 		ModelWidget(QWidget *parent = 0);
@@ -333,7 +346,7 @@ class ModelWidget: public QWidget {
 
 		/*! \brief Rearrange table/view/textboxes in the canvas in such way to provide better visualization
 		 * of the whole model. Currently only hierachical arrangement is possible. See rearrangeTablesHierarchically() */
-		void rearrangeObjects(void);
+		void rearrangeTablesHierarchically(void);
 
 		void emitSceneInteracted(void);
 
@@ -454,6 +467,8 @@ class ModelWidget: public QWidget {
 		void fadeObjectsOut(void);
 
 		void toggleExtendedAttributes(void);
+
+		void toggleSchemasRectangles(void);
 
 		void editCreationOrder(void);
 

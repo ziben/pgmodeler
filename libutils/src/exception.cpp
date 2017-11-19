@@ -227,7 +227,7 @@ QString Exception::messages[ERROR_COUNT][2]={
 	{"ERR_INV_ID_SWAP_SAME_OBJECT", QT_TR_NOOP("Invalid object id swapping operation! The objects involved are the same!")},
 	{"ERR_INV_ID_SWAP_INV_OBJ_TYPE", QT_TR_NOOP("Invalid object id swapping operation! The database itself, tablespaces or roles cannot have the ids swapped!")},
 	{"ERR_ASG_WGT_ALREADY_HAS_PARENT", QT_TR_NOOP("The widget already has a parent and cannot be assigned to a different object!")},
-	{"ERR_OBJECT_NOT_IMPORTED",  QT_TR_NOOP("The object `%1' (%2), oid `%3', could not be imported due to one or more errors! Check the exception stack for more details.")},
+	{"ERR_OBJECT_NOT_IMPORTED",  QT_TR_NOOP("The object `%1' (%2), oid `%3', could not be imported due to one or more errors! Check the exception stack for more details. `HINT:' if the object somehow references objects in `pg_catalog' or `information_schema' consider enable the importing of system objects.")},
 	{"ERR_MODEL_FILE_NOT_LOADED", QT_TR_NOOP("Could not load the database model file `%1'. Check the error stack to see details. Try to run `pgmodeler-cli --fix-model' in order to correct the structure of the file if that is the case.")},
 	{"ERR_INV_COLUMN_TABLE_TYPE", QT_TR_NOOP("The column `%1' cannot reference it's parent table `%2' as data type!")},
 	{"ERR_OPR_INV_ELEMENT_ID", QT_TR_NOOP("Operation with an invalid element id `%1'!")},
@@ -247,7 +247,8 @@ QString Exception::messages[ERROR_COUNT][2]={
 	{"ERR_ASG_ENUM_LONG_NAME", QT_TR_NOOP("The enumeration `%1' can't be assigned to the type `%2' because is too long!")},
 	{"ERR_CONNECTION_TIMEOUT", QT_TR_NOOP("The connection was idle for too long and was automatically closed!")},
 	{"ERR_CONNECTION_BROKEN", QT_TR_NOOP("The connection was unexpectedly closed by the database server `%1' at port `%2'!")},
-	{"ERR_DROP_CURRDB_DEFAULT", QT_TR_NOOP("Failed to drop the database `%1' because it is defined as the default database for the connection `%2'!")}
+	{"ERR_DROP_CURRDB_DEFAULT", QT_TR_NOOP("Failed to drop the database `%1' because it is defined as the default database for the connection `%2'!")},
+	{"ERR_NULL_PK_COLUMN", QT_TR_NOOP("The column `%1' should be `NOT NULL' because it composes the primary key of the table `%2'. You need to remove the column from the mentioned contraint in order to disable the `NOT NULL' on it!")}
 };
 
 Exception::Exception(void)
